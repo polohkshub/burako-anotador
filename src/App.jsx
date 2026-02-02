@@ -209,7 +209,7 @@ export default function App() {
           )}
         </div>
 
-        <div className="footerNote">Para la que gana Simpre "LORE" nto💙</div>
+        <div className="footerNote">Para jugar en Familia💙</div>
       </div>
     </div>
   );
