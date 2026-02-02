@@ -3,260 +3,208 @@ import "./App.css";
 
 const GOAL = 3000;
 
-const toNum = (v) => {
+const num = (v) => {
   if (v === "" || v === null || v === undefined) return 0;
   const x = Number(String(v).replace(",", "."));
   return Number.isFinite(x) ? x : 0;
 };
 
-function roundTotal(r) {
-  // TOTAL RONDA = canastas + puntosFichas
-  return toNum(r.canastas) + toNum(r.puntosFichas);
-}
-
 export default function App() {
-  // nombres VACÍOS, con placeholder
-  const [nameA, setNameA] = useState("");
-  const [nameB, setNameB] = useState("");
+  // nombres vacíos
+  const [p1, setP1] = useState("");
+  const [p2, setP2] = useState("");
 
-  // acumulados
-  const [scoreA, setScoreA] = useState(0);
-  const [scoreB, setScoreB] = useState(0);
+  // ronda (inputs vacíos)
+  const [can1, setCan1] = useState("");
+  const [can2, setCan2] = useState("");
+  const [pf1, setPf1] = useState("");
+  const [pf2, setPf2] = useState("");
 
-  // ronda actual
-  const [rA, setRA] = useState({ canastas: "", puntosFichas: "" });
-  const [rB, setRB] = useState({ canastas: "", puntosFichas: "" });
+  // acumulado
+  const [total1, setTotal1] = useState(0);
+  const [total2, setTotal2] = useState(0);
 
   // historial
-  const [rounds, setRounds] = useState([]); // {n, addA, addB, totalA, totalB}
+  const [history, setHistory] = useState([]); // {n, add1, add2, t1, t2}
 
-  const totalRoundA = useMemo(() => roundTotal(rA), [rA]);
-  const totalRoundB = useMemo(() => roundTotal(rB), [rB]);
+  const name1 = p1.trim() || "JUGADOR 1";
+  const name2 = p2.trim() || "JUGADOR 2";
 
-  const playerA = nameA.trim() || "Jugador 1";
-  const playerB = nameB.trim() || "Jugador 2";
+  // total ronda automático
+  const ronda1 = useMemo(() => num(can1) + num(pf1), [can1, pf1]);
+  const ronda2 = useMemo(() => num(can2) + num(pf2), [can2, pf2]);
 
   const winner =
-    scoreA >= GOAL && scoreB >= GOAL
-      ? "Empate"
-      : scoreA >= GOAL
-      ? playerA
-      : scoreB >= GOAL
-      ? playerB
+    total1 >= GOAL && total2 >= GOAL
+      ? "EMPATE"
+      : total1 >= GOAL
+      ? name1
+      : total2 >= GOAL
+      ? name2
       : null;
 
   useEffect(() => {
     if (!winner) return;
     setTimeout(() => {
-      alert(`🏆 Ganó ${winner} 🎉\n\nMeta: ${GOAL}\n${playerA}: ${scoreA}\n${playerB}: ${scoreB}`);
+      alert(`🏆 GANÓ ${winner}\n\n${name1}: ${total1}\n${name2}: ${total2}`);
     }, 100);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [winner]);
 
-  const partidasA = rounds.length;
-  const partidasB = rounds.length;
-
-  const handleChange = (setter, key, value) => {
-    // permitir vacío y números
-    if (value === "") {
-      setter((p) => ({ ...p, [key]: "" }));
-      return;
-    }
+  const onlyNumOrEmpty = (value, setter) => {
+    if (value === "") return setter("");
     const cleaned = value.replace(",", ".");
-    if (/^-?\d*\.?\d*$/.test(cleaned)) {
-      setter((p) => ({ ...p, [key]: cleaned }));
-    }
+    if (/^-?\d*\.?\d*$/.test(cleaned)) setter(cleaned);
   };
 
-  const saveRound = () => {
-    const addA = totalRoundA;
-    const addB = totalRoundB;
+  const guardarRonda = () => {
+    const add1 = ronda1;
+    const add2 = ronda2;
 
-    const nextA = scoreA + addA;
-    const nextB = scoreB + addB;
+    const t1 = total1 + add1;
+    const t2 = total2 + add2;
 
-    const n = rounds.length + 1;
+    const n = history.length + 1;
 
-    setRounds((prev) => [
-      {
-        n,
-        addA,
-        addB,
-        totalA: nextA,
-        totalB: nextB,
-      },
-      ...prev,
-    ]);
+    setHistory((h) => [{ n, add1, add2, t1, t2 }, ...h]);
 
-    setScoreA(nextA);
-    setScoreB(nextB);
+    setTotal1(t1);
+    setTotal2(t2);
 
-    // limpiar inputs (vacíos)
-    setRA({ canastas: "", puntosFichas: "" });
-    setRB({ canastas: "", puntosFichas: "" });
+    // limpiar inputs
+    setCan1("");
+    setCan2("");
+    setPf1("");
+    setPf2("");
   };
 
-  const undo = () => {
-    if (rounds.length === 0) return;
-    const [last, ...rest] = rounds;
-    setRounds(rest);
-    setScoreA((x) => x - last.addA);
-    setScoreB((x) => x - last.addB);
-  };
-
-  const reset = () => {
-    if (!confirm("¿Reiniciar todo el anotador?")) return;
-    setNameA("");
-    setNameB("");
-    setScoreA(0);
-    setScoreB(0);
-    setRounds([]);
-    setRA({ canastas: "", puntosFichas: "" });
-    setRB({ canastas: "", puntosFichas: "" });
+  const reiniciar = () => {
+    if (!confirm("¿Reiniciar todo?")) return;
+    setP1("");
+    setP2("");
+    setCan1("");
+    setCan2("");
+    setPf1("");
+    setPf2("");
+    setTotal1(0);
+    setTotal2(0);
+    setHistory([]);
   };
 
   return (
     <div className="page">
-      <header className="header">
-        <div className="hTitle">🃏 Burako Anotador</div>
-        <div className="hSub">2 columnas · partidas automáticas · ganador a {GOAL}</div>
-      </header>
+      <div className="card">
+        <div className="title">🃏 BURAKO ANOTADOR</div>
 
-      <section className="sheet">
-        {/* Encabezado jugadores */}
-        <div className="row head">
-          <div className="cell label"></div>
-          <div className="cell col">
-            <input
-              className="nameInput"
-              value={nameA}
-              onChange={(e) => setNameA(e.target.value)}
-              placeholder="Jugador 1"
-            />
-          </div>
-          <div className="cell col">
-            <input
-              className="nameInput"
-              value={nameB}
-              onChange={(e) => setNameB(e.target.value)}
-              placeholder="Jugador 2"
-            />
-          </div>
+        <div className="names">
+          <input
+            className="nameInput"
+            placeholder="JUGADOR 1"
+            value={p1}
+            onChange={(e) => setP1(e.target.value)}
+          />
+          <input
+            className="nameInput"
+            placeholder="JUGADOR 2"
+            value={p2}
+            onChange={(e) => setP2(e.target.value)}
+          />
         </div>
 
-        {/* PUNTOS */}
-        <div className="row">
-          <div className="cell label">PUNTOS</div>
-          <div className="cell col big">{scoreA}</div>
-          <div className="cell col big">{scoreB}</div>
-        </div>
-
-        {/* CANASTAS */}
-        <div className="row">
-          <div className="cell label">CANASTAS</div>
-          <div className="cell col">
+        <div className="section">
+          <div className="sectionTitle">CANASTAS</div>
+          <div className="two">
             <input
               className="numInput"
-              value={rA.canastas}
-              onChange={(e) => handleChange(setRA, "canastas", e.target.value)}
-              placeholder="0"
+              placeholder=""
+              value={can1}
+              onChange={(e) => onlyNumOrEmpty(e.target.value, setCan1)}
               inputMode="numeric"
             />
-          </div>
-          <div className="cell col">
             <input
               className="numInput"
-              value={rB.canastas}
-              onChange={(e) => handleChange(setRB, "canastas", e.target.value)}
-              placeholder="0"
+              placeholder=""
+              value={can2}
+              onChange={(e) => onlyNumOrEmpty(e.target.value, setCan2)}
               inputMode="numeric"
             />
           </div>
         </div>
 
-        {/* PUNTOS FICHAS */}
-        <div className="row">
-          <div className="cell label">PUNTOS FICHAS</div>
-          <div className="cell col">
+        <div className="section">
+          <div className="sectionTitle">PUNTOS FICHAS</div>
+          <div className="two">
             <input
               className="numInput"
-              value={rA.puntosFichas}
-              onChange={(e) => handleChange(setRA, "puntosFichas", e.target.value)}
-              placeholder="0"
+              placeholder=""
+              value={pf1}
+              onChange={(e) => onlyNumOrEmpty(e.target.value, setPf1)}
+              inputMode="numeric"
+            />
+            <input
+              className="numInput"
+              placeholder=""
+              value={pf2}
+              onChange={(e) => onlyNumOrEmpty(e.target.value, setPf2)}
               inputMode="numeric"
             />
           </div>
-          <div className="cell col">
-            <input
-              className="numInput"
-              value={rB.puntosFichas}
-              onChange={(e) => handleChange(setRB, "puntosFichas", e.target.value)}
-              placeholder="0"
-              inputMode="numeric"
-            />
+        </div>
+
+        <div className="section">
+          <div className="sectionTitle">TOTAL (RONDA)</div>
+          <div className="two">
+            <div className="boxRead">{ronda1}</div>
+            <div className="boxRead">{ronda2}</div>
           </div>
         </div>
 
-        {/* TOTAL */}
-        <div className="row">
-          <div className="cell label">TOTAL (ronda)</div>
-          <div className="cell col total">{totalRoundA}</div>
-          <div className="cell col total">{totalRoundB}</div>
-        </div>
-
-        {/* PARTIDAS */}
-        <div className="row">
-          <div className="cell label">PARTIDAS</div>
-          <div className="cell col">{partidasA}</div>
-          <div className="cell col">{partidasB}</div>
-        </div>
-
-        {/* GANADOR */}
-        <div className="row winnerRow">
-          <div className="cell label">GANADOR</div>
-          <div className="cell col winnerCell" style={{ gridColumn: "2 / 4" }}>
-            {winner ? (
-              <span className="winnerText">🏆 {winner}</span>
-            ) : (
-              <span className="muted">A {GOAL} puntos</span>
-            )}
+        <div className="section">
+          <div className="sectionTitle">TOTAL</div>
+          <div className="two">
+            <div className="boxTotal">{total1}</div>
+            <div className="boxTotal">{total2}</div>
           </div>
         </div>
-      </section>
 
-      <section className="actions">
-        <button className="btn primary" onClick={saveRound}>
-          Guardar ronda
-        </button>
-        <button className="btn ghost" onClick={undo} disabled={rounds.length === 0}>
-          Deshacer
-        </button>
-        <button className="btn danger" onClick={reset}>
-          Reiniciar
-        </button>
-      </section>
+        <div className="winner">
+          <div className="winnerTitle">GANADOR A {GOAL} PUNTOS</div>
+          <div className="winnerName">
+            {winner ? `🏆 ${winner}` : "—"}
+          </div>
+        </div>
 
-      <section className="history">
-        <div className="historyTitle">Historial</div>
-        {rounds.length === 0 ? (
-          <div className="muted small">Todavía no guardaste ninguna ronda.</div>
+        <div className="actions">
+          <button className="btn primary" onClick={guardarRonda}>
+            GUARDAR RONDA
+          </button>
+          <button className="btn ghost" onClick={reiniciar}>
+            REINICIAR
+          </button>
+        </div>
+      </div>
+
+      <div className="history">
+        <div className="historyTitle">HISTORIAL (OPCIONAL)</div>
+
+        {history.length === 0 ? (
+          <div className="historyEmpty">Todavía no guardaste rondas.</div>
         ) : (
           <div className="historyList">
-            {rounds.map((r) => (
-              <div className="histItem" key={r.n}>
-                <div className="histTop">
-                  <span className="pill">Partida {r.n}</span>
-                  <span className="muted small">
-                    {playerA}: +{r.addA} (={r.totalA}) · {playerB}: +{r.addB} (={r.totalB})
-                  </span>
+            {history.map((h) => (
+              <div className="historyRow" key={h.n}>
+                <div className="roundN">PARTIDA {h.n}</div>
+                <div className="roundLine">
+                  {name1}: +{h.add1} → {h.t1}
+                </div>
+                <div className="roundLine">
+                  {name2}: +{h.add2} → {h.t2}
                 </div>
               </div>
             ))}
           </div>
         )}
-      </section>
-
-      <footer className="footer">Hecho para celular 📱 · simple como debe ser.</footer>
+      </div>
     </div>
   );
 }
