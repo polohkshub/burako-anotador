@@ -209,7 +209,7 @@ export default function App() {
           )}
         </div>
 
-        <div className="footerNote">Hecho para jugar en familia 💙</div>
+        <div className="footerNote">Para Maria💙</div>
       </div>
     </div>
   );
