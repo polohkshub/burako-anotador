@@ -1,240 +1,270 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import "./App.css";
 
-const GOAL = 3000;
-
-function toNumber(value) {
-  if (value === "" || value === null || value === undefined) return 0;
-  const n = Number(String(value).replace(",", "."));
+const toNum = (v) => {
+  if (v === "" || v === null || v === undefined) return 0;
+  const n = Number(String(v).replace(",", "."));
   return Number.isFinite(n) ? n : 0;
-}
+};
+
+const formatPts = (n) => {
+  // sin decimales, burako es entero
+  return String(Math.trunc(n));
+};
 
 export default function App() {
-  // Nombres (vacíos para escribir directo)
   const [name1, setName1] = useState("");
   const [name2, setName2] = useState("");
 
-  // Acumulados
-  const [total1, setTotal1] = useState(0);
-  const [total2, setTotal2] = useState(0);
-
-  // Inputs ronda (vacíos para escribir directo, sin "0" molesto)
+  // inputs de ronda (los llenás vos)
   const [can1, setCan1] = useState("");
   const [can2, setCan2] = useState("");
 
   const [fich1, setFich1] = useState("");
   const [fich2, setFich2] = useState("");
 
-  // Historial rondas
+  // acumulado (lo calcula la app)
+  const [acc1, setAcc1] = useState(0);
+  const [acc2, setAcc2] = useState(0);
+
+  // partidas ganadas (contador)
+  const [part1, setPart1] = useState(0);
+  const [part2, setPart2] = useState(0);
+
+  // historial
   const [history, setHistory] = useState([]);
 
-  // Cálculos ronda
-  const roundTotal1 = useMemo(() => toNumber(can1) + toNumber(fich1), [can1, fich1]);
-  const roundTotal2 = useMemo(() => toNumber(can2) + toNumber(fich2), [can2, fich2]);
+  const roundTotal1 = useMemo(() => {
+    return toNum(can1) + toNum(fich1);
+  }, [can1, fich1]);
+
+  const roundTotal2 = useMemo(() => {
+    return toNum(can2) + toNum(fich2);
+  }, [can2, fich2]);
 
   const winner = useMemo(() => {
-    if (total1 >= GOAL && total2 >= GOAL) return "Empate";
-    if (total1 >= GOAL) return name1?.trim() || "Jugador 1";
-    if (total2 >= GOAL) return name2?.trim() || "Jugador 2";
+    const n1 = name1.trim() || "JUGADOR 1";
+    const n2 = name2.trim() || "JUGADOR 2";
+    if (acc1 >= 3000 && acc1 > acc2) return n1;
+    if (acc2 >= 3000 && acc2 > acc1) return n2;
+    if (acc1 >= 3000 && acc2 >= 3000 && acc1 !== acc2)
+      return acc1 > acc2 ? n1 : n2;
     return "";
-  }, [total1, total2, name1, name2]);
+  }, [acc1, acc2, name1, name2]);
 
-  // Guardar ronda
-  function saveRound() {
-    const n1 = roundTotal1;
-    const n2 = roundTotal2;
+  const clearRoundInputs = () => {
+    setCan1("");
+    setCan2("");
+    setFich1("");
+    setFich2("");
+  };
 
-    // si está todo vacío, no guardar
-    if (n1 === 0 && n2 === 0 && String(can1) === "" && String(can2) === "" && String(fich1) === "" && String(fich2) === "") {
-      return;
-    }
+  const onSaveRound = () => {
+    const n1 = name1.trim() || "JUGADOR 1";
+    const n2 = name2.trim() || "JUGADOR 2";
 
-    const nextTotal1 = total1 + n1;
-    const nextTotal2 = total2 + n2;
+    const r1 = roundTotal1;
+    const r2 = roundTotal2;
 
-    const item = {
-      id: Date.now(),
-      r: history.length + 1,
-      can1: toNumber(can1),
-      can2: toNumber(can2),
-      fich1: toNumber(fich1),
-      fich2: toNumber(fich2),
-      round1: n1,
-      round2: n2,
-      acc1: nextTotal1,
-      acc2: nextTotal2,
+    const newAcc1 = acc1 + r1;
+    const newAcc2 = acc2 + r2;
+
+    setAcc1(newAcc1);
+    setAcc2(newAcc2);
+
+    // partidas: suma 1 al que ganó la ronda (si empatan no suma)
+    if (r1 > r2) setPart1((p) => p + 1);
+    else if (r2 > r1) setPart2((p) => p + 1);
+
+    const row = {
+      id: crypto.randomUUID(),
+      date: new Date().toLocaleString(),
+      n1,
+      n2,
+      can1: toNum(can1),
+      can2: toNum(can2),
+      fich1: toNum(fich1),
+      fich2: toNum(fich2),
+      total1: r1,
+      total2: r2,
+      acc1: newAcc1,
+      acc2: newAcc2,
     };
 
-    setHistory([item, ...history]);
-    setTotal1(nextTotal1);
-    setTotal2(nextTotal2);
+    setHistory((h) => [row, ...h]);
+    clearRoundInputs();
+  };
 
-    // limpiar inputs
-    setCan1("");
-    setCan2("");
-    setFich1("");
-    setFich2("");
-  }
-
-  // Reiniciar todo
-  function resetAll() {
-    setName1("");
-    setName2("");
-    setTotal1(0);
-    setTotal2(0);
-    setCan1("");
-    setCan2("");
-    setFich1("");
-    setFich2("");
+  const onResetAll = () => {
+    if (!confirm("¿Reiniciar TODO el anotador?")) return;
+    setAcc1(0);
+    setAcc2(0);
+    setPart1(0);
+    setPart2(0);
     setHistory([]);
-  }
-
-  // Enter guarda
-  useEffect(() => {
-    const handler = (e) => {
-      if (e.key === "Enter") saveRound();
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  });
+    clearRoundInputs();
+  };
 
   return (
     <div className="page">
       <div className="card">
-        <h1 className="title">Burako Anotador</h1>
+        <div className="title">🃏 BURAKO ANOTADOR</div>
 
-        {/* NOMBRES */}
-        <div className="twoCols">
-          <div className="col">
-            <label className="label">JUGADOR 1</label>
-            <input
-              className="input"
-              value={name1}
-              onChange={(e) => setName1(e.target.value)}
-              placeholder="Escribir nombre..."
-            />
-          </div>
-
-          <div className="col">
-            <label className="label">JUGADOR 2</label>
-            <input
-              className="input"
-              value={name2}
-              onChange={(e) => setName2(e.target.value)}
-              placeholder="Escribir nombre..."
-            />
-          </div>
+        {/* encabezados */}
+        <div className="grid2 head">
+          <div className="colTitle">JUGADOR 1</div>
+          <div className="colTitle">JUGADOR 2</div>
         </div>
 
-        {/* TABLA 2 COLUMNAS */}
-        <div className="table">
-          <div className="row head">
-            <div className="cell left">{name1?.trim() || "Jugador 1"}</div>
-            <div className="cell right">{name2?.trim() || "Jugador 2"}</div>
-          </div>
-
-          <div className="sectionTitle">CANASTAS</div>
-          <div className="row">
-            <div className="cell">
-              <input
-                className="num"
-                value={can1}
-                onChange={(e) => setCan1(e.target.value)}
-                placeholder=""
-                inputMode="numeric"
-              />
-            </div>
-            <div className="cell">
-              <input
-                className="num"
-                value={can2}
-                onChange={(e) => setCan2(e.target.value)}
-                placeholder=""
-                inputMode="numeric"
-              />
-            </div>
-          </div>
-
-          <div className="sectionTitle">PUNTOS FICHAS</div>
-          <div className="row">
-            <div className="cell">
-              <input
-                className="num"
-                value={fich1}
-                onChange={(e) => setFich1(e.target.value)}
-                placeholder=""
-                inputMode="numeric"
-              />
-            </div>
-            <div className="cell">
-              <input
-                className="num"
-                value={fich2}
-                onChange={(e) => setFich2(e.target.value)}
-                placeholder=""
-                inputMode="numeric"
-              />
-            </div>
-          </div>
-
-          <div className="sectionTitle">TOTAL (RONDA)</div>
-          <div className="row totalRow">
-            <div className="cell totalCell">{roundTotal1}</div>
-            <div className="cell totalCell">{roundTotal2}</div>
-          </div>
-
-          <div className="sectionTitle">TOTAL (ACUMULADO)</div>
-          <div className="row totalRow">
-            <div className="cell totalCell big">{total1}</div>
-            <div className="cell totalCell big">{total2}</div>
-          </div>
+        {/* nombres */}
+        <div className="grid2">
+          <input
+            className="inp name"
+            value={name1}
+            onChange={(e) => setName1(e.target.value)}
+            placeholder="NOMBRE"
+          />
+          <input
+            className="inp name"
+            value={name2}
+            onChange={(e) => setName2(e.target.value)}
+            placeholder="NOMBRE"
+          />
         </div>
 
-        {/* GANADOR */}
-        <div className="winnerBox">
-          <div className="winnerTitle">GANADOR A {GOAL} PUNTOS</div>
-          <div className="winnerName">{winner ? winner : "—"}</div>
+        {/* CANASTAS */}
+        <div className="grid2 sectionTitle">
+          <div>CANASTAS</div>
+          <div>CANASTAS</div>
+        </div>
+        <div className="grid2">
+          <input
+            className="inp num"
+            inputMode="numeric"
+            value={can1}
+            onChange={(e) => setCan1(e.target.value)}
+            placeholder="PUNTOS"
+          />
+          <input
+            className="inp num"
+            inputMode="numeric"
+            value={can2}
+            onChange={(e) => setCan2(e.target.value)}
+            placeholder="PUNTOS"
+          />
+        </div>
+
+        {/* PUNTOS FICHAS */}
+        <div className="grid2 sectionTitle">
+          <div>PUNTOS FICHAS</div>
+          <div>PUNTOS FICHAS</div>
+        </div>
+        <div className="grid2">
+          <input
+            className="inp num"
+            inputMode="numeric"
+            value={fich1}
+            onChange={(e) => setFich1(e.target.value)}
+            placeholder="PUNTOS"
+          />
+          <input
+            className="inp num"
+            inputMode="numeric"
+            value={fich2}
+            onChange={(e) => setFich2(e.target.value)}
+            placeholder="PUNTOS"
+          />
+        </div>
+
+        {/* TOTAL RONDA */}
+        <div className="grid2 sectionTitle">
+          <div>TOTAL (RONDA)</div>
+          <div>TOTAL (RONDA)</div>
+        </div>
+        <div className="grid2">
+          <div className="calcBox">{formatPts(roundTotal1)}</div>
+          <div className="calcBox">{formatPts(roundTotal2)}</div>
+        </div>
+
+        {/* TOTAL ACUMULADO */}
+        <div className="grid2 sectionTitle">
+          <div>TOTAL (ACUMULADO)</div>
+          <div>TOTAL (ACUMULADO)</div>
+        </div>
+        <div className="grid2">
+          <div className="calcBox big">{formatPts(acc1)}</div>
+          <div className="calcBox big">{formatPts(acc2)}</div>
+        </div>
+
+        {/* PARTIDAS */}
+        <div className="grid2 sectionTitle">
+          <div>PARTIDAS</div>
+          <div>PARTIDAS</div>
+        </div>
+        <div className="grid2">
+          <div className="calcBox">{formatPts(part1)}</div>
+          <div className="calcBox">{formatPts(part2)}</div>
         </div>
 
         {/* BOTONES */}
-        <div className="actions">
-          <button className="btn ghost" onClick={resetAll}>Reiniciar</button>
-          <button className="btn primary" onClick={saveRound}>Guardar ronda</button>
+        <div className="grid2 buttons">
+          <button className="btn danger" onClick={onResetAll}>
+            REINICIAR
+          </button>
+          <button className="btn" onClick={onSaveRound}>
+            GUARDAR RONDA
+          </button>
         </div>
 
-        {/* HISTORIAL ABAJO DE BOTONES */}
+        {/* GANADOR */}
+        <div className="winner">
+          <div className="winnerTitle">GANADOR A 3000</div>
+          <div className={`winnerName ${winner ? "show" : ""}`}>
+            {winner ? `🏆 ${winner}` : "—"}
+          </div>
+        </div>
+
+        {/* HISTORIAL */}
         <div className="history">
-          <div className="historyTitle">Historial de rondas</div>
+          <div className="historyTitle">HISTORIAL</div>
 
           {history.length === 0 ? (
-            <div className="historyEmpty">Todavía no hay rondas guardadas.</div>
+            <div className="historyEmpty">Todavía no guardaste rondas.</div>
           ) : (
-            history.map((h) => (
-              <div key={h.id} className="histItem">
-                <div className="histTop">Ronda {h.r}</div>
-                <div className="histGrid">
-                  <div className="histCol">
-                    <div className="histName">{name1?.trim() || "Jugador 1"}</div>
-                    <div>Canastas: <b>{h.can1}</b></div>
-                    <div>Fichas: <b>{h.fich1}</b></div>
-                    <div>Total ronda: <b>{h.round1}</b></div>
-                    <div>Acumulado: <b>{h.acc1}</b></div>
+            <div className="historyList">
+              {history.map((h, idx) => (
+                <div className="historyRow" key={h.id}>
+                  <div className="historyTop">
+                    <div className="historyIdx">RONDA {history.length - idx}</div>
+                    <div className="historyDate">{h.date}</div>
                   </div>
 
-                  <div className="histCol">
-                    <div className="histName">{name2?.trim() || "Jugador 2"}</div>
-                    <div>Canastas: <b>{h.can2}</b></div>
-                    <div>Fichas: <b>{h.fich2}</b></div>
-                    <div>Total ronda: <b>{h.round2}</b></div>
-                    <div>Acumulado: <b>{h.acc2}</b></div>
+                  <div className="historyGrid">
+                    <div className="hCell">
+                      <div className="hName">{h.n1}</div>
+                      <div className="hSmall">
+                        CAN {formatPts(h.can1)} | FICH {formatPts(h.fich1)}
+                      </div>
+                      <div className="hBig">TOTAL {formatPts(h.total1)}</div>
+                      <div className="hAcc">ACUM {formatPts(h.acc1)}</div>
+                    </div>
+
+                    <div className="hCell">
+                      <div className="hName">{h.n2}</div>
+                      <div className="hSmall">
+                        CAN {formatPts(h.can2)} | FICH {formatPts(h.fich2)}
+                      </div>
+                      <div className="hBig">TOTAL {formatPts(h.total2)}</div>
+                      <div className="hAcc">ACUM {formatPts(h.acc2)}</div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
+              ))}
+            </div>
           )}
         </div>
 
-        <div className="hint">Tip: podés apretar <b>Enter</b> para guardar la ronda.</div>
+        <div className="footerNote">Hecho para jugar en familia 💙</div>
       </div>
     </div>
   );
