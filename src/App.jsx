@@ -1,161 +1,216 @@
-:root {
-  --bg1: #dff2ff;
-  --bg2: #bfe6ff;
-  --card: rgba(255, 255, 255, 0.78);
-  --ink: #0b2a3a;
-  --inkSoft: rgba(11, 42, 58, 0.7);
-  --line: rgba(11, 42, 58, 0.15);
-  --btn: #0b5ed7;
-  --btn2: #0a4db2;
-  --danger: #d72638;
-}
+import { useMemo, useState } from "react";
+import "./App.css";
 
-* { box-sizing: border-box; }
+const toNum = (v) => {
+  if (v === "" || v === null || v === undefined) return 0;
+  const n = Number(String(v).replace(",", "."));
+  return Number.isFinite(n) ? n : 0;
+};
 
-body {
-  margin: 0;
-  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-  color: var(--ink);
-}
+const formatPts = (n) => String(Math.trunc(n));
 
-.page {
-  min-height: 100vh;
-  padding: 12px;
-  display: grid;
-  place-items: start center;
-  background: radial-gradient(1200px 600px at 50% 0%, var(--bg1), var(--bg2));
-}
+export default function App() {
+  const [name1, setName1] = useState("");
+  const [name2, setName2] = useState("");
 
-.card {
-  width: 100%;
-  max-width: 520px;
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  padding: 12px;
-  backdrop-filter: blur(10px);
-  box-shadow: 0 14px 35px rgba(0, 0, 0, 0.12);
-}
+  const [can1, setCan1] = useState("");
+  const [can2, setCan2] = useState("");
 
-.title {
-  text-align: center;
-  font-weight: 1000;
-  letter-spacing: 0.06em;
-  font-size: 18px;
-  margin-bottom: 10px;
-}
+  const [fich1, setFich1] = useState("");
+  const [fich2, setFich2] = useState("");
 
-/* 2 columnas SIEMPRE */
-.grid2 {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  width: 100%;
-}
+  const [acc1, setAcc1] = useState(0);
+  const [acc2, setAcc2] = useState(0);
 
-.colTitle {
-  text-align: center;
-  font-weight: 1000;
-  font-size: 14px;
-  letter-spacing: 0.06em;
-  padding: 10px 6px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.65);
-  border: 1px solid var(--line);
-}
+  const [part1, setPart1] = useState(0);
+  const [part2, setPart2] = useState(0);
 
-.sectionTitle {
-  margin-top: 8px;
-  font-weight: 1000;
-  letter-spacing: 0.08em;
-  font-size: 12px;
-  text-align: center;
-  color: var(--inkSoft);
-}
+  const [history, setHistory] = useState([]);
 
-.inp {
-  width: 100%;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 10px 8px;
-  font-size: 15px;
-  font-weight: 900;
-  text-transform: uppercase;
-  outline: none;
-  background: rgba(255, 255, 255, 0.9);
-  color: var(--ink);
-  text-align: center;
-}
+  const roundTotal1 = useMemo(() => toNum(can1) + toNum(fich1), [can1, fich1]);
+  const roundTotal2 = useMemo(() => toNum(can2) + toNum(fich2), [can2, fich2]);
 
-/* acá arreglamos el tamaño para 5 dígitos */
-.calcBox {
-  width: 100%;
-  border-radius: 12px;
-  padding: 10px 8px;
-  text-align: center;
-  font-size: 16px;     /* NO gigante */
-  font-weight: 1000;
-  letter-spacing: 0.04em;
-  background: rgba(255, 255, 255, 0.55);
-  border: 1px dashed rgba(11, 42, 58, 0.25);
-}
+  const winner = useMemo(() => {
+    const n1 = name1.trim() || "JUGADOR 1";
+    const n2 = name2.trim() || "JUGADOR 2";
+    if (acc1 >= 3000 && acc1 > acc2) return n1;
+    if (acc2 >= 3000 && acc2 > acc1) return n2;
+    if (acc1 >= 3000 && acc2 >= 3000 && acc1 !== acc2)
+      return acc1 > acc2 ? n1 : n2;
+    return "";
+  }, [acc1, acc2, name1, name2]);
 
-.calcBox.big {
-  font-size: 18px;   /* un poco más, pero no enorme */
-}
+  const clearRoundInputs = () => {
+    setCan1("");
+    setCan2("");
+    setFich1("");
+    setFich2("");
+  };
 
-.buttons { margin-top: 10px; }
+  const onSaveRound = () => {
+    const n1 = name1.trim() || "JUGADOR 1";
+    const n2 = name2.trim() || "JUGADOR 2";
 
-.btn {
-  border: 0;
-  border-radius: 14px;
-  padding: 12px 10px;
-  font-size: 13px;
-  font-weight: 1000;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  cursor: pointer;
-  color: white;
-  background: linear-gradient(180deg, var(--btn), var(--btn2));
-}
+    const r1 = roundTotal1;
+    const r2 = roundTotal2;
 
-.btn.danger {
-  background: linear-gradient(180deg, #ff4b5c, var(--danger));
-}
+    const newAcc1 = acc1 + r1;
+    const newAcc2 = acc2 + r2;
 
-.winner {
-  margin-top: 12px;
-  text-align: center;
-  border-radius: 16px;
-  padding: 10px 8px;
-  border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.65);
-}
+    setAcc1(newAcc1);
+    setAcc2(newAcc2);
 
-.winnerTitle {
-  font-weight: 1000;
-  letter-spacing: 0.08em;
-  font-size: 12px;
-  color: var(--inkSoft);
-}
+    if (r1 > r2) setPart1((p) => p + 1);
+    else if (r2 > r1) setPart2((p) => p + 1);
 
-.winnerName {
-  margin-top: 6px;
-  font-size: 16px;
-  font-weight: 1000;
-}
+    const row = {
+      id: crypto.randomUUID(),
+      date: new Date().toLocaleString(),
+      n1,
+      n2,
+      can1: toNum(can1),
+      can2: toNum(can2),
+      fich1: toNum(fich1),
+      fich2: toNum(fich2),
+      total1: r1,
+      total2: r2,
+      acc1: newAcc1,
+      acc2: newAcc2,
+    };
 
-.history {
-  margin-top: 14px;
-  padding-top: 12px;
-  border-top: 1px solid var(--line);
-}
+    setHistory((h) => [row, ...h]);
+    clearRoundInputs();
+  };
 
-.historyTitle {
-  text-align: center;
-  font-weight: 1000;
-  letter-spacing: 0.08em;
-  font-size: 12px;
-  margin-bottom: 10px;
-  color: var(--inkSoft);
+  const onResetAll = () => {
+    if (!confirm("¿Reiniciar TODO el anotador?")) return;
+    setAcc1(0);
+    setAcc2(0);
+    setPart1(0);
+    setPart2(0);
+    setHistory([]);
+    clearRoundInputs();
+  };
+
+  return (
+    <div className="page">
+      <div className="card">
+        <div className="title">🃏 BURAKO ANOTADOR</div>
+
+        <div className="grid2">
+          <div className="colTitle">JUGADOR 1</div>
+          <div className="colTitle">JUGADOR 2</div>
+        </div>
+
+        <div className="grid2">
+          <input
+            className="inp"
+            value={name1}
+            onChange={(e) => setName1(e.target.value)}
+            placeholder="NOMBRE"
+          />
+          <input
+            className="inp"
+            value={name2}
+            onChange={(e) => setName2(e.target.value)}
+            placeholder="NOMBRE"
+          />
+        </div>
+
+        <div className="grid2 sectionTitle">
+          <div>CANASTAS</div>
+          <div>CANASTAS</div>
+        </div>
+        <div className="grid2">
+          <input className="inp" inputMode="numeric" value={can1} onChange={(e) => setCan1(e.target.value)} placeholder="PUNTOS" />
+          <input className="inp" inputMode="numeric" value={can2} onChange={(e) => setCan2(e.target.value)} placeholder="PUNTOS" />
+        </div>
+
+        <div className="grid2 sectionTitle">
+          <div>PUNTOS FICHAS</div>
+          <div>PUNTOS FICHAS</div>
+        </div>
+        <div className="grid2">
+          <input className="inp" inputMode="numeric" value={fich1} onChange={(e) => setFich1(e.target.value)} placeholder="PUNTOS" />
+          <input className="inp" inputMode="numeric" value={fich2} onChange={(e) => setFich2(e.target.value)} placeholder="PUNTOS" />
+        </div>
+
+        <div className="grid2 sectionTitle">
+          <div>TOTAL (RONDA)</div>
+          <div>TOTAL (RONDA)</div>
+        </div>
+        <div className="grid2">
+          <div className="calcBox">{formatPts(roundTotal1)}</div>
+          <div className="calcBox">{formatPts(roundTotal2)}</div>
+        </div>
+
+        <div className="grid2 sectionTitle">
+          <div>TOTAL (ACUMULADO)</div>
+          <div>TOTAL (ACUMULADO)</div>
+        </div>
+        <div className="grid2">
+          <div className="calcBox big">{formatPts(acc1)}</div>
+          <div className="calcBox big">{formatPts(acc2)}</div>
+        </div>
+
+        <div className="grid2 sectionTitle">
+          <div>PARTIDAS</div>
+          <div>PARTIDAS</div>
+        </div>
+        <div className="grid2">
+          <div className="calcBox">{formatPts(part1)}</div>
+          <div className="calcBox">{formatPts(part2)}</div>
+        </div>
+
+        <div className="grid2 buttons">
+          <button className="btn danger" onClick={onResetAll}>REINICIAR</button>
+          <button className="btn" onClick={onSaveRound}>GUARDAR RONDA</button>
+        </div>
+
+        <div className="winner">
+          <div className="winnerTitle">GANADOR A 3000</div>
+          <div className={`winnerName ${winner ? "show" : ""}`}>
+            {winner ? `🏆 ${winner}` : "—"}
+          </div>
+        </div>
+
+        <div className="history">
+          <div className="historyTitle">HISTORIAL</div>
+
+          {history.length === 0 ? (
+            <div className="historyEmpty">Todavía no guardaste rondas.</div>
+          ) : (
+            <div className="historyList">
+              {history.map((h, idx) => (
+                <div className="historyRow" key={h.id}>
+                  <div className="historyTop">
+                    <div className="historyIdx">RONDA {history.length - idx}</div>
+                    <div className="historyDate">{h.date}</div>
+                  </div>
+
+                  <div className="historyGrid">
+                    <div className="hCell">
+                      <div className="hName">{h.n1}</div>
+                      <div className="hSmall">CAN {formatPts(h.can1)} | FICH {formatPts(h.fich1)}</div>
+                      <div className="hBig">TOTAL {formatPts(h.total1)}</div>
+                      <div className="hAcc">ACUM {formatPts(h.acc1)}</div>
+                    </div>
+
+                    <div className="hCell">
+                      <div className="hName">{h.n2}</div>
+                      <div className="hSmall">CAN {formatPts(h.can2)} | FICH {formatPts(h.fich2)}</div>
+                      <div className="hBig">TOTAL {formatPts(h.total2)}</div>
+                      <div className="hAcc">ACUM {formatPts(h.acc2)}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="footerNote">Hecho para jugar en familia 💙</div>
+      </div>
+    </div>
+  );
 }
